@@ -9,7 +9,7 @@ import { WorldContextConsumer } from "@latticexyz/world/src/WorldContext.sol";
 import { revertWithBytes } from "@latticexyz/world/src/revertWithBytes.sol";
 
 import { Randcast } from "./tables/Randcast.sol";
-import { RandcastSystem } from "./RandcastSystem.sol";
+import { RandcastSystem } from "./RandcastSys.sol";
 
 import { MODULE_NAME, TABLE_ID, SYSTEM_ID, NAMESPACE_ID } from "./constants.sol";
 
@@ -18,6 +18,7 @@ import { MODULE_NAME, TABLE_ID, SYSTEM_ID, NAMESPACE_ID } from "./constants.sol"
  * a public system that returns an incremented nonce each time.
  */
 contract RandcastModule is Module {
+  event SystemAddress(address);
   // Since the UniqueEntitySystem only exists once per World and writes to
   // known tables, we can deploy it once and register it in multiple Worlds.
   RandcastSystem private immutable randcastSystem = new RandcastSystem();
@@ -47,10 +48,15 @@ contract RandcastModule is Module {
       abi.encodeCall(world.registerSystem, (SYSTEM_ID, randcastSystem, true))
     );
     if (!success) revertWithBytes(data);
+    emit SystemAddress(address(randcastSystem));
+    // Register system's functions
+    (success, data) = address(world).delegatecall(
+      abi.encodeCall(world.registerFunctionSelector, (SYSTEM_ID, "getRandomNumber(uint64, bytes32)"))
+    );
 
     // Register system's functions
     (success, data) = address(world).delegatecall(
-      abi.encodeCall(world.registerFunctionSelector, (SYSTEM_ID, "getRandomness()"))
+      abi.encodeCall(world.registerFunctionSelector, (SYSTEM_ID, "fulfillRandomness(bytes32, randomness, bytes32)"))
     );
     if (!success) revertWithBytes(data);
   }
@@ -70,8 +76,12 @@ contract RandcastModule is Module {
 
     // Register system
     world.registerSystem(SYSTEM_ID, randcastSystem, true);
+    emit SystemAddress(address(randcastSystem));
 
     // Register system's functions
-    world.registerFunctionSelector(SYSTEM_ID, "getRandomness()");
+    world.registerFunctionSelector(SYSTEM_ID, "getRandomNumber(uint64, bytes32)");
+
+        // Register system's functions
+    world.registerFunctionSelector(SYSTEM_ID, "fulfillRandomness(bytes32, randomness, bytes32)");
   }
 }

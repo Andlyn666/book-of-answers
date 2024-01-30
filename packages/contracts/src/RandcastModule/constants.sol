@@ -6,7 +6,7 @@ import { RESOURCE_TABLE, RESOURCE_SYSTEM, RESOURCE_NAMESPACE } from "@latticexyz
 
 bytes14 constant NAMESPACE = bytes14("randcast");
 bytes16 constant MODULE_NAME = bytes16("randcast");
-bytes16 constant SYSTEM_NAME = bytes16("system");
+bytes16 constant SYSTEM_NAME = bytes16("RandcastSystem");
 bytes16 constant TABLE_NAME = bytes16("table");
 
 ResourceId constant NAMESPACE_ID = ResourceId.wrap(bytes32(abi.encodePacked(RESOURCE_NAMESPACE, NAMESPACE)));

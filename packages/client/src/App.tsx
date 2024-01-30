@@ -2,26 +2,50 @@ import { useMUD } from "./MUDContext";
 import React, { Component, useState } from 'react';
 import  { runQuery, Has, HasValue, getComponentValueStrict } from "@latticexyz/recs";
 const styleUnset = { all: "unset" } as const;
-import "./book.css"
 import { setup } from "./mud/setup";
-const {
-  components: { Answers },
-  systemCalls: { getRandomness },
-} = await setup();
+import { async } from './mud/setupNetwork';
+import { v4 as uuidv4 } from 'uuid';
+import { Spin } from 'antd';
 
-const getRandomAnswer = (Answers) => {
-  const randomIndex = getRandomness();
+
+const getRandomAnswer = async (Answers, getRandomness) => {
+  const entityID = generateUniqueBytes32KeyFromUUID();
+  const randomness = await getRandomness(entityID, 1);
+  // uint256 is BigInt, so need to convert to BigInt
+  const randomIndex = BigInt(randomness % BigInt(20));
+  const result = runQuery([HasValue(Answers, {page: BigInt(randomIndex)})]);
+  const answerEntity = result.values().next().value;
+  const answer = getComponentValueStrict(Answers, answerEntity);
   console.log(randomIndex);
-  // // uint256 is BigInt, so need to convert to BigInt
-  // const result = runQuery([HasValue(Answers, {page: BigInt(randomIndex)})]);
-  // const answerEntity = result.values().next().value;
-  // const answer = getComponentValueStrict(Answers, answerEntity);
-  // return answer.answers;
+
+  return answer.answers;
 };
 
+function generateUniqueBytes32KeyFromUUID(): string {
+  // Generate a UUID
+  const uuid = uuidv4();
+  
+  // Remove hyphens and convert to a hex string
+  const hexUuid = uuid.replace(/-/g, '');
+  
+  // Pad the hexUuid if necessary to make sure it's 32 bytes long
+  const paddedHexUuid = hexUuid.padEnd(64, '0');
+  
+  // Ensure that the string is exactly 32 bytes long (in case of an oversized UUID)
+  const bytes32Key = `0x${paddedHexUuid.substring(0, 64)}`;
+  
+  return bytes32Key;
+}
+
 export const App = () => {
+  const {
+    components: { Answers },
+    systemCalls: { getRandomness },
+  } = useMUD();
+
   const [isOpen, setIsOpen] = useState(false);
   const [answer, setAnswer] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
 
   // Define the inline styles for the container and book opened div
@@ -40,9 +64,12 @@ export const App = () => {
     textAlign: 'center', // Center the text
   };
 
-  const toggleBook = () => {
+  const toggleBook = async () => {
     if (!isOpen) {
-      setAnswer(getRandomAnswer(Answers));
+      setIsLoading(true);
+      const result = await getRandomAnswer(Answers, getRandomness);
+      setIsLoading(false);
+      setAnswer(result);
     }
     setIsOpen(!isOpen);
   };
@@ -52,115 +79,33 @@ export const App = () => {
       <div style={{ ...containerStyle}}>
         {!isOpen ? (
           // When the book is not open, show the book cover image.
-          <img
-            src="../book.jpeg"
-            className="book-img"
-            onClick={toggleBook}
-            alt="Book cover"
-            style={{ height: "100vh" }}
-          />
-        ) : (
-          // When the book is open, show the content and the content image.
-          <>
+          <Spin size="large" spinning={isLoading}>
             <img
-              src="../content.jpeg"
+              src="../book.jpeg"
               className="book-img"
               onClick={toggleBook}
-              alt="Book content"
-              style={{
-                height: "100vh",
-              }}
+              alt="Book cover"
+              style={{ height: "100vh" }}
             />
-            <h3 style={{ position: 'absolute', top: '38%', left: '50%', color: "gray", textShadow: "white", transform: 'translate(-50%, -50%)' }}>
-              {answer}
-            </h3>
-          </>
+          </Spin>
+        ) : (
+          // When the book is open, show the content and the content image.
+            <div>
+              <img
+                src="../content.jpeg"
+                className="book-img"
+                onClick={toggleBook}
+                alt="Book content"
+                style={{
+                  height: "100vh",
+                }}
+              />
+              <h3 style={{ position: 'absolute', top: '38%', left: '50%', color: "gray", textShadow: "white", transform: 'translate(-50%, -50%)' }}>
+                {answer}
+              </h3>
+            </div>
         )}
       </div>
-      {/* <table>
-        <tbody>
-          {tasks.map((task) => (
-            <tr key={task.id}>
-              <td align="right">
-                <input
-                  type="checkbox"
-                  checked={task.value.completedAt > 0n}
-                  title={task.value.completedAt === 0n ? "Mark task as completed" : "Mark task as incomplete"}
-                  onChange={async (event) => {
-                    event.preventDefault();
-                    const checkbox = event.currentTarget;
-
-                    checkbox.disabled = true;
-                    try {
-                      await toggleTask(task.key.key);
-                    } finally {
-                      checkbox.disabled = false;
-                    }
-                  }}
-                />
-              </td>
-              <td>{task.value.completedAt > 0n ? <s>{task.value.description}</s> : <>{task.value.description}</>}</td>
-              <td align="right">
-                <button
-                  type="button"
-                  title="Delete task"
-                  style={styleUnset}
-                  onClick={async (event) => {
-                    event.preventDefault();
-                    if (!window.confirm("Are you sure you want to delete this task?")) return;
-
-                    const button = event.currentTarget;
-                    button.disabled = true;
-                    try {
-                      await deleteTask(task.key.key);
-                    } finally {
-                      button.disabled = false;
-                    }
-                  }}
-                >
-                  &times;
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td>
-              <input type="checkbox" disabled />
-            </td>
-            <td colSpan={2}>
-              <form
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const form = event.currentTarget;
-                  const fieldset = form.querySelector("fieldset");
-                  if (!(fieldset instanceof HTMLFieldSetElement)) return;
-
-                  const formData = new FormData(form);
-                  const desc = formData.get("description");
-                  if (typeof desc !== "string") return;
-
-                  fieldset.disabled = true;
-                  try {
-                    await addTask(desc);
-                    form.reset();
-                  } finally {
-                    fieldset.disabled = false;
-                  }
-                }}
-              >
-                <fieldset style={styleUnset}>
-                  <input type="text" name="description" />{" "}
-                  <button type="submit" title="Add task">
-                    Add
-                  </button>
-                </fieldset>
-              </form>
-            </td>
-          </tr>
-        </tfoot>
-      </table> */}
     </>
   );
 };

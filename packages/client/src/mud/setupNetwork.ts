@@ -10,7 +10,7 @@ import { encodeEntity, syncToRecs } from "@latticexyz/store-sync/recs";
 import { getNetworkConfig } from "./getNetworkConfig";
 import { world } from "./world";
 import IWorldAbi from "contracts/out/IWorld.sol/IWorld.abi.json";
-import { createBurnerAccount, getContract, transportObserver, ContractWrite } from "@latticexyz/common";
+import { createBurnerAccount, getContract, transportObserver, ContractWrite, resourceToHex } from "@latticexyz/common";
 
 import { Subject, share } from "rxjs";
 
@@ -76,12 +76,25 @@ export async function setupNetwork() {
    */
   const { components, latestBlock$, storedBlockLogs$, waitForTransaction } = await syncToRecs({
     world,
+    tables: {
+      Randcast: {
+        namespace: "",
+        name: "Randcast",
+        tableId: resourceToHex({ type: "table", namespace: "randcast", name: "table" }),
+        keySchema: {
+          key: { type: "bytes32" },
+        },
+        valueSchema: {
+          requestId: { type: "bytes32" },
+          randomness: { type: "uint256" },
+        },
+      },
+    },
     config: mudConfig,
     address: networkConfig.worldAddress as Hex,
     publicClient,
     startBlock: BigInt(networkConfig.initialBlockNumber),
   });
-
   /*
    * If there is a faucet, request (test) ETH if you have
    * less than 1 ETH. Repeat every 20 seconds to ensure you don't

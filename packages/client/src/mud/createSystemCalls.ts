@@ -3,11 +3,11 @@
  * for changes in the World state (using the System contracts).
  */
 
-import { getComponentValue } from "@latticexyz/recs";
+import { Entity, getComponentValueStrict } from "@latticexyz/recs";
 import { ClientComponents } from "./createClientComponents";
 import { SetupNetworkResult } from "./setupNetwork";
 import { singletonEntity } from "@latticexyz/store-sync/recs";
-
+import { SystemSwitch } from "@latticexyz/world-modules/src/utils/SystemSwitch.sol";
 export type SystemCalls = ReturnType<typeof createSystemCalls>;
 
 export function createSystemCalls(
@@ -31,21 +31,43 @@ export function createSystemCalls(
    *   (https://github.com/latticexyz/mud/blob/main/templates/react/packages/client/src/mud/setupNetwork.ts#L77-L83).
    */
   { worldContract, waitForTransaction }: SetupNetworkResult,
-  { Randcast }: ClientComponents
+  { Randcast}: ClientComponents
 ) {
 
-  const getRandomness = async () => {
-    /*
-     * Because IncrementSystem
-     * (https://mud.dev/templates/typescript/contracts#incrementsystemsol)
-     * is in the root namespace, `.increment` can be called directly
-     * on the World contract.
-     */
-    const tx = await worldContract.write.getRandomness();
-    result = await waitForTransaction(tx);
-    console.log(result);
-    return result;
+  const getRandomness = async (entityId, subId) => {
+    
+    // Send the transaction
+    const tx = await worldContract.write.getRandomness([BigInt(subId), entityId]);
+    // Wait for the transaction to be mined
+    await waitForTransaction(tx);
+    let attempts = 0;
+    const maxAttempts = 10; // Try for 10 seconds
+    
+    while (attempts < maxAttempts) {
+      try {
+        // Get the component value
+        const randomnessComponent = getComponentValueStrict(Randcast, entityId);
+        if (randomnessComponent && randomnessComponent.randomness) {
+          // If randomness is found, return it
+          //return randomnessComponent.randomness;
+          const randomness = worldContract.read.getRandomnessByKey([entityId]);
+          return randomness;
+        }
+      } catch (error) {
+        if (attempts === maxAttempts - 1)
+        console.error("An error occurred:", error);
+      }
+  
+      // Increase the attempt counter
+      attempts++;
+  
+      // Wait for 1 second before trying again
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  
+    throw new Error("Failed to obtain randomness within 10 seconds");
   };
+  
 
   return {
     getRandomness,
