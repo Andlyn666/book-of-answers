@@ -12,3 +12,5 @@ bytes16 constant TABLE_NAME = bytes16("table");
 ResourceId constant NAMESPACE_ID = ResourceId.wrap(bytes32(abi.encodePacked(RESOURCE_NAMESPACE, NAMESPACE)));
 ResourceId constant TABLE_ID = ResourceId.wrap(bytes32(abi.encodePacked(RESOURCE_TABLE, NAMESPACE, TABLE_NAME)));
 ResourceId constant SYSTEM_ID = ResourceId.wrap((bytes32(abi.encodePacked(RESOURCE_SYSTEM, NAMESPACE, SYSTEM_NAME))));
+
+address constant MUD_CONSUMER_ADDRESS = 0xA15BB66138824a1c7167f5E85b957d04Dd34E468;

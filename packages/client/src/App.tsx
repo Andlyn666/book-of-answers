@@ -10,7 +10,7 @@ import { Spin } from 'antd';
 
 const getRandomAnswer = async (Answers, getRandomness) => {
   const entityID = generateUniqueBytes32KeyFromUUID();
-  const randomness = await getRandomness(entityID, 1);
+  const randomness = await getRandomness(entityID, 0);
   // uint256 is BigInt, so need to convert to BigInt
   const randomIndex = BigInt(randomness % BigInt(20));
   const result = runQuery([HasValue(Answers, {page: BigInt(randomIndex)})]);

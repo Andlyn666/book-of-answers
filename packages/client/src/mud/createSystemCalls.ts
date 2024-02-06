@@ -8,6 +8,9 @@ import { ClientComponents } from "./createClientComponents";
 import { SetupNetworkResult } from "./setupNetwork";
 import { singletonEntity } from "@latticexyz/store-sync/recs";
 import { SystemSwitch } from "@latticexyz/world-modules/src/utils/SystemSwitch.sol";
+import * as crypto from 'crypto';
+import { random } from "@latticexyz/utils";
+
 export type SystemCalls = ReturnType<typeof createSystemCalls>;
 
 export function createSystemCalls(
@@ -33,11 +36,13 @@ export function createSystemCalls(
   { worldContract, waitForTransaction }: SetupNetworkResult,
   { Randcast}: ClientComponents
 ) {
-
+  
   const getRandomness = async (entityId, subId) => {
-    
+    const estimatePara = "1234".padEnd(64, '0');
+    const estimateCallBackGas = await worldContract.estimateGas.fulfillRandomness([`0x${estimatePara}`, BigInt(0), `0x${estimatePara}`]);
+    console.log(estimateCallBackGas);
     // Send the transaction
-    const tx = await worldContract.write.getRandomness([BigInt(subId), entityId]);
+    const tx = await worldContract.write.getRandomness([BigInt(subId), entityId, Number(estimateCallBackGas)]);
     // Wait for the transaction to be mined
     await waitForTransaction(tx);
     let attempts = 0;
@@ -49,7 +54,7 @@ export function createSystemCalls(
         const randomnessComponent = getComponentValueStrict(Randcast, entityId);
         if (randomnessComponent && randomnessComponent.randomness) {
           // If randomness is found, return it
-          //return randomnessComponent.randomness;
+          // return randomnessComponent.randomness;
           const randomness = worldContract.read.getRandomnessByKey([entityId]);
           return randomness;
         }

@@ -7,6 +7,8 @@ import { StoreSwitch } from "@latticexyz/store/src/StoreSwitch.sol";
 
 import { IWorld } from "../src/codegen/world/IWorld.sol";
 import { Answers, AnswersData } from "../src/codegen/index.sol";
+import { SYSTEM_ID, NAMESPACE_ID } from "../src/RandcastModule/constants.sol";
+import { ROOT_NAMESPACE_ID } from "@latticexyz/world/src/constants.sol";
 contract PostDeploy is Script {
   function run(address worldAddress) external {
     // Specify a store so that you can use tables directly in PostDeploy
@@ -38,8 +40,9 @@ contract PostDeploy is Script {
     Answers.set("0x11", AnswersData({ page: 17, answers: "You may need to compromise." }));
     Answers.set("0x12", AnswersData({ page: 18, answers: "Stay true to your values." }));
     Answers.set("0x13", AnswersData({ page: 19, answers: "Success lies in the details." }));
-
-
+    address(worldAddress).call{ value: 2000000000000000000 }("");
+    IWorld(worldAddress).transferBalanceToAddress(ROOT_NAMESPACE_ID, address(0x0166d24F08741AAA2b512795ec1cDE9B92a2892A), 1000000000000000000);
+    IWorld(worldAddress).transferBalanceToNamespace(ROOT_NAMESPACE_ID, NAMESPACE_ID, 1000000000000000000);
     vm.stopBroadcast();
   }
 }

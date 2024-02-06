@@ -8,10 +8,13 @@ pragma solidity >=0.8.21;
  * @dev This interface is automatically generated from the corresponding system contract. Do not edit manually.
  */
 interface IRandcastSystem {
-  function getRandomNumber(uint64 subId, bytes32 entityId) external;
-  function fulfillRandomness(bytes32 requestId, uint256 randomness, bytes32 entityId) external;
+  function getRandomNumber(uint64 subId, bytes32 entityId, uint32 callbackGas) external payable;
+
+  function _fulfillRandomness(bytes32 requestId, uint256 randomness, bytes32 entityId) external;
+
   function getRandomnessByEntityId(bytes32 entityId) external view returns (uint256 randomNumber);
+
+  function estimateCallbackGas(uint32 callBackGas) external pure returns (uint32);
+
+  function estimateRequestFee(uint32 callBackGas) external view returns (uint256);
 }
-
-
-

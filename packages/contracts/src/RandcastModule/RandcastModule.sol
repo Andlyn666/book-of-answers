@@ -9,7 +9,7 @@ import { WorldContextConsumer } from "@latticexyz/world/src/WorldContext.sol";
 import { revertWithBytes } from "@latticexyz/world/src/revertWithBytes.sol";
 
 import { Randcast } from "./tables/Randcast.sol";
-import { RandcastSystem } from "./RandcastSys.sol";
+import { RandcastSystem } from "./RandcastSystem.sol";
 
 import { MODULE_NAME, TABLE_ID, SYSTEM_ID, NAMESPACE_ID } from "./constants.sol";
 
@@ -56,7 +56,7 @@ contract RandcastModule is Module {
 
     // Register system's functions
     (success, data) = address(world).delegatecall(
-      abi.encodeCall(world.registerFunctionSelector, (SYSTEM_ID, "fulfillRandomness(bytes32, randomness, bytes32)"))
+      abi.encodeCall(world.registerFunctionSelector, (SYSTEM_ID, "_fulfillRandomness(bytes32, randomness, bytes32)"))
     );
     if (!success) revertWithBytes(data);
   }
@@ -82,6 +82,6 @@ contract RandcastModule is Module {
     world.registerFunctionSelector(SYSTEM_ID, "getRandomNumber(uint64, bytes32)");
 
         // Register system's functions
-    world.registerFunctionSelector(SYSTEM_ID, "fulfillRandomness(bytes32, randomness, bytes32)");
+    world.registerFunctionSelector(SYSTEM_ID, "_fulfillRandomness(bytes32, randomness, bytes32)");
   }
 }
